@@ -46,6 +46,8 @@
 
 include make/sanitycheck.make
 
+USE_DEC64=1
+
 ifndef GENDIR
 GENDIR=$(shell pwd)/gen
 endif
@@ -295,6 +297,16 @@ libs/compression/compress_heatshrink.c
 endif
 
 ifndef BOOTLOADER # ------------------------------------------------------------------------------ DON'T USE IN BOOTLOADER
+
+ifdef USE_DEC64
+DEFINES += -DDEC64=1
+INCLUDE += -I$(ROOT)/libs/DEC64
+SOURCES += \
+libs/DEC64/dec64_math.c \
+libs/DEC64/dec64_string.c \
+libs/DEC64/dec64_util.c \
+libs/DEC64/dec64.asm 
+endif
 
 ifdef USE_FILESYSTEM
 DEFINES += -DUSE_FILESYSTEM
@@ -624,7 +636,7 @@ PININFOFILE=$(GENDIR)/jspininfo
 SOURCES += $(PININFOFILE).c
 
 SOURCES += $(WRAPPERSOURCES) $(TARGETSOURCES)
-SOURCEOBJS = $(SOURCES:.c=.o) $(CPPSOURCES:.cpp=.o)
+SOURCEOBJS = $(SOURCES:.c=.o) $(CPPSOURCES:.cpp=.o) $(SOURCES:.asm=.asm.o)
 OBJS = $(SOURCEOBJS) $(PRECOMPILED_OBJS)
 
 
@@ -742,9 +754,9 @@ quiet_link= LD $@
 quiet_obj_dump= GEN $(PROJ_NAME).lst
 quiet_obj_to_bin= GEN $(PROJ_NAME).$2
 
-%.o: %.c $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
-	@echo $($(quiet_)compile)
-	@$(call compile)
+%.asm.o: %.asm $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
+	@echo as $(CFLAGS) $< -o $@
+	as $(CFLAGS) $< -o $@
 
 .cpp.o: $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
 	@echo $($(quiet_)compile)

@@ -15,6 +15,9 @@
 #define JSVAR_H_
 
 #include "jsutils.h"
+#if DEC64
+#include "dec64.h"
+#endif
 
 /** To avoid confusion - JsVarRefCounter should be big enough
  * to store as many refs as can possibly be created - so it's
@@ -191,7 +194,11 @@ typedef union {
      * to overwrite 3 references in order to grab another 6 bytes worth of string data */
     // TODO do some magic with union/structs in order to make sure we don't intentionally write off the end of arrays
     JsVarInt integer; ///< The contents of this variable if it is an int
+#if DEC64
+    dec64 floating;
+#else
     JsVarFloat floating; ///< The contents of this variable if it is a double
+#endif
     JsVarDataArrayBufferView arraybuffer; ///< information for array buffer views.
     JsVarDataNative native; ///< A native function
     JsVarDataNativeStr nativeStr; ///< A native string

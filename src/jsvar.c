@@ -22,6 +22,11 @@
 #include "jswrap_arraybuffer.h" // for jsvNewTypedArray
 #include "jswrap_dataview.h" // for jsvNewDataViewWithData
 
+#if DEC64
+#include "dec64_string.h"
+#include "dec64_util.h"
+#endif
+
 #ifdef DEBUG
   /** When freeing, clear the references (nextChild/etc) in the JsVar.
    * This means we can assert at the end of jsvFreePtr to make sure
@@ -984,15 +989,15 @@ bool jsvIsBasicVarEqual(JsVar *a, JsVar *b) {
         return a->varData.integer == b->varData.integer;
       } else {
         assert(jsvIsFloat(b));
-        return a->varData.integer == b->varData.floating;
+        return dec64_equal(dec64_from_int32(a->varData.integer), b->varData.floating);
       }
     } else {
       assert(jsvIsFloat(a));
       if (jsvIsIntegerish(b)) {
-        return a->varData.floating == b->varData.integer;
+        return dec64_equal(a->varData.floating, dec64_from_int32(b->varData.integer));
       } else {
         assert(jsvIsFloat(b));
-        return a->varData.floating == b->varData.floating;
+        return dec64_equal(a->varData.floating, b->varData.floating);
       }
     }
   } else if (jsvIsString(a) && jsvIsString(b)) {
@@ -1077,7 +1082,15 @@ size_t jsvGetString(const JsVar *v, char *str, size_t len) {
     itostr(v->varData.integer, str, 10);
     return strlen(str);
   } else if (jsvIsFloat(v)) {
+#if DEC64
+    dec64_string_state state = dec64_string_begin();
+    dec64_string_char actual[32];
+    dec64_to_string(state, v->varData.floating, actual);
+    dec64_string_end(state);
+    strncpy(str, actual, len);
+#else
     ftoa_bounded(v->varData.floating, str, len);
+#endif
     return strlen(str);
   } else if (jsvHasCharacterData(v)) {
     assert(!jsvIsStringExt(v));
@@ -1629,8 +1642,13 @@ JsVarInt jsvGetInteger(const JsVar *v) {
     }
   }
   if (jsvIsFloat(v)) {
+#if DEC64
+    if (!dec64_is_any_nan(v->varData.floating))
+      return (JsVarInt)(dec64_int32(v->varData.floating));
+#else
     if (isfinite(v->varData.floating))
       return (JsVarInt)(long long)v->varData.floating;
+#endif
     return 0;
   }
   if (jsvIsString(v) && jsvIsStringNumericInt(v, true/* allow decimal point*/)) {
@@ -1684,7 +1702,7 @@ bool jsvGetBool(const JsVar *v) {
 
 JsVarFloat jsvGetFloat(const JsVar *v) {
   if (!v) return NAN; // undefined
-  if (jsvIsFloat(v)) return v->varData.floating;
+  if (jsvIsFloat(v)) return (JsVarFloat)(dec64_double(v->varData.floating));
   if (jsvIsIntegerish(v)) return (JsVarFloat)v->varData.integer;
   if (jsvIsArray(v) || jsvIsArrayBuffer(v)) {
     JsVarInt l = jsvGetLength(v);
