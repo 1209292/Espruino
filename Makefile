@@ -636,7 +636,7 @@ PININFOFILE=$(GENDIR)/jspininfo
 SOURCES += $(PININFOFILE).c
 
 SOURCES += $(WRAPPERSOURCES) $(TARGETSOURCES)
-SOURCEOBJS = $(SOURCES:.c=.o) $(CPPSOURCES:.cpp=.o) $(SOURCES:.asm=.asm.o)
+SOURCEOBJS = $(SOURCES:.c=.o) $(CPPSOURCES:.cpp=.o) $(SOURCES:.asm=.asmo)
 OBJS = $(SOURCEOBJS) $(PRECOMPILED_OBJS)
 
 
@@ -754,9 +754,13 @@ quiet_link= LD $@
 quiet_obj_dump= GEN $(PROJ_NAME).lst
 quiet_obj_to_bin= GEN $(PROJ_NAME).$2
 
-%.asm.o: %.asm $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
-	@echo as $(CFLAGS) $< -o $@
-	as $(CFLAGS) $< -o $@
+%.o: %.c $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
+	@echo $($(quiet_)compile)
+	@$(call compile)
+
+%.asmo: %.asm $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
+	@echo as $< -o $@
+	as $< -o $@
 
 .cpp.o: $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
 	@echo $($(quiet_)compile)
