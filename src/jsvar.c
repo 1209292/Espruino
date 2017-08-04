@@ -1643,7 +1643,8 @@ JsVarInt jsvGetInteger(const JsVar *v) {
   }
   if (jsvIsFloat(v)) {
 #if DEC64
-    if (!dec64_is_any_nan(v->varData.floating))
+    extern int dec64_is_nan(dec64 number);
+    if (!dec64_is_nan(v->varData.floating))
       return (JsVarInt)(dec64_int32(v->varData.floating));
 #else
     if (isfinite(v->varData.floating))

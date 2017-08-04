@@ -260,6 +260,7 @@ src/jsspi.c \
 src/jshardware_common.c \
 $(WRAPPERFILE)
 CPPSOURCES =
+NASMSOURCES=
 
 ifdef CFILE
 WRAPPERSOURCES += $(CFILE)
@@ -302,10 +303,9 @@ ifdef USE_DEC64
 DEFINES += -DDEC64=1
 INCLUDE += -I$(ROOT)/libs/DEC64
 SOURCES += \
-libs/DEC64/dec64_math.c \
 libs/DEC64/dec64_string.c \
-libs/DEC64/dec64_util.c \
-libs/DEC64/dec64.asm 
+libs/DEC64/dec64_util.c 
+NASMSOURCES += libs/DEC64/lib.nasm 
 endif
 
 ifdef USE_FILESYSTEM
@@ -636,7 +636,7 @@ PININFOFILE=$(GENDIR)/jspininfo
 SOURCES += $(PININFOFILE).c
 
 SOURCES += $(WRAPPERSOURCES) $(TARGETSOURCES)
-SOURCEOBJS = $(SOURCES:.c=.o) $(CPPSOURCES:.cpp=.o) $(SOURCES:.asm=.asmo)
+SOURCEOBJS = $(SOURCES:.c=.o) $(CPPSOURCES:.cpp=.o) $(NASMSOURCES:.nasm=.nasmo)
 OBJS = $(SOURCEOBJS) $(PRECOMPILED_OBJS)
 
 
@@ -758,9 +758,9 @@ quiet_obj_to_bin= GEN $(PROJ_NAME).$2
 	@echo $($(quiet_)compile)
 	@$(call compile)
 
-%.asmo: %.asm $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
-	@echo as $< -o $@
-	as $< -o $@
+%.nasmo: %.nasm $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
+	@echo nasm -felf64 -o$@ $<
+	nasm -felf64 -o$@ $<
 
 .cpp.o: $(PLATFORM_CONFIG_FILE) $(PININFOFILE).h
 	@echo $($(quiet_)compile)
