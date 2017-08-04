@@ -831,7 +831,11 @@ JsVar *jsvNewFromBool(bool value) {
 JsVar *jsvNewFromFloat(JsVarFloat value) {
   JsVar *var = jsvNewWithFlags(JSV_FLOAT);
   if (!var) return 0; // no memory
+#ifdef DEC64
   var->varData.floating = dec64_from_double(value);
+#else
+  var->varData.floating = value;
+#endif
   return var;
 }
 JsVar *jsvNewFromLongInteger(long long value) {
@@ -3031,7 +3035,27 @@ JsVar *jsvMathsOp(JsVar *a, JsVar *b, int op) {
       default: return jsvMathsOpError(op, "Double");
       }
 #else
-      oops
+      // use doubles
+      JsVarFloat da = jsvGetFloat(a);
+      JsVarFloat db = jsvGetFloat(b);
+      switch (op) {
+      case '+': return jsvNewFromFloat(da+db);
+      case '-': return jsvNewFromFloat(da-db);
+      case '*': return jsvNewFromFloat(da*db);
+      case '/': return jsvNewFromFloat(da/db);
+      case '%': return jsvNewFromFloat(jswrap_math_mod(da, db));
+      case LEX_EQUAL:
+      case LEX_NEQUAL:  { bool equal = da==db;
+      if ((jsvIsNull(a) && jsvIsUndefined(b)) ||
+          (jsvIsNull(b) && jsvIsUndefined(a))) equal = true; // JS quirk :)
+      return jsvNewFromBool((op==LEX_EQUAL) ? equal : ((bool)!equal));
+      }
+      case '<':           return jsvNewFromBool(da<db);
+      case LEX_LEQUAL:    return jsvNewFromBool(da<=db);
+      case '>':           return jsvNewFromBool(da>db);
+      case LEX_GEQUAL:    return jsvNewFromBool(da>=db);
+      default: return jsvMathsOpError(op, "Double");
+      }
 #endif
     }
   } else if ((jsvIsArray(a) || jsvIsObject(a) || jsvIsFunction(a) ||
